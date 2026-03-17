@@ -1,11 +1,1680 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus</title>
-    </head>
-    <body>
-        PakePlus
-    </body>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>姚瑞霖积分管理系统</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --primary-dark: #388E3C;
+            --danger: #f44336;
+            --danger-dark: #d32f2f;
+            --warning: #FF9800;
+            --info: #2196F3;
+            --bg: #f5f5f5;
+            --card-bg: #ffffff;
+            --text: #333;
+            --text-light: #666;
+            --border: #ddd;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .balance-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .balance-amount {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .balance-amount.negative {
+            color: var(--danger);
+        }
+
+        .balance-label {
+            color: var(--text-light);
+            font-size: 1rem;
+        }
+
+        .tabs {
+            display: flex;
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+        }
+
+        .tab:hover {
+            background: #f0f0f0;
+        }
+
+        .tab.active {
+            border-bottom-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            margin-bottom: 15px;
+            color: var(--text);
+            font-size: 1.3rem;
+        }
+
+        .points-group {
+            margin-bottom: 15px;
+        }
+
+        .points-group h3 {
+            color: var(--primary);
+            font-size: 1rem;
+            margin-bottom: 10px;
+            padding-left: 10px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .points-group.punish h3 {
+            color: var(--danger);
+            border-left-color: var(--danger);
+        }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .item-btn {
+            padding: 12px 15px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+        }
+
+        .item-btn:hover {
+            border-color: var(--primary);
+            background: #f8fff8;
+        }
+
+        .item-btn.selected {
+            border-color: var(--primary);
+            background: #e8f5e9;
+        }
+
+        .item-btn.punish {
+            border-color: #ffcdd2;
+        }
+
+        .item-btn.punish:hover {
+            border-color: var(--danger);
+            background: #fff5f5;
+        }
+
+        .item-btn.punish.selected {
+            border-color: var(--danger);
+            background: #ffebee;
+        }
+
+        .item-name {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .item-points {
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        .item-btn.get .item-points {
+            color: var(--primary);
+        }
+
+        .item-btn.punish .item-points {
+            color: var(--danger);
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: var(--danger-dark);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        .action-area {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .selected-info {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8f8f8;
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: #f8f8f8;
+            font-weight: 600;
+        }
+
+        .type-get {
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .type-use {
+            color: var(--danger);
+            font-weight: 500;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #f8f8f8;
+            padding: 20-radius: 8px;
+            borderpx;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .stat-value.negative {
+            color: var(--danger);
+        }
+
+        .stat-label {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .chart-container {
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        .time-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .time-btn {
+            padding: 8px 20px;
+            border: 2px solid var(--border);
+            border-radius: 20px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .time-btn:hover, .time-btn.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideDown 0.3s ease;
+        }
+
+        .toast.success {
+            background: var(--primary);
+        }
+
+        .toast.error {
+            background: var(--danger);
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateX(-50%) translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-light);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-light);
+        }
+
+        .record-list {
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .record-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .record-item:hover {
+            border-color: var(--primary);
+        }
+
+        .record-item .record-info {
+            flex: 1;
+        }
+
+        .record-item .record-date {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-bottom: 4px;
+        }
+
+        .record-item .record-name {
+            font-weight: 500;
+        }
+
+        .record-item .record-points {
+            font-weight: bold;
+            font-size: 1.1rem;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .record-item.get .record-points {
+            color: var(--primary);
+        }
+
+        .record-item.use .record-points {
+            color: var(--danger);
+        }
+
+        .record-item .delete-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin-left: 10px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .record-item:hover .delete-btn {
+            opacity: 1;
+        }
+
+        .record-item .delete-btn:hover {
+            background: #c62828;
+        }
+
+        .admin-section {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .admin-section:last-child {
+            border-bottom: none;
+        }
+
+        .admin-section h3 {
+            margin-bottom: 15px;
+            color: var(--text);
+        }
+
+        .file-input-wrapper {
+            margin-bottom: 20px;
+        }
+
+        .item-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 2px solid var(--border);
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+        }
+
+        .checkbox-item:hover {
+            background: #f0f0f0;
+        }
+
+        .checkbox-item.selected {
+            background: #e8f5e9;
+            border-color: var(--primary);
+        }
+
+        .checkbox-item.punish:hover {
+            background: #fff5f5;
+        }
+
+        .checkbox-item.punish.selected {
+            background: #ffebee;
+            border-color: var(--danger);
+        }
+
+        .checkbox-item input {
+            margin-right: 8px;
+            width: 18px;
+            height: 18px;
+        }
+
+        .checkbox-label {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        .checkbox-points {
+            font-weight: bold;
+            font-size: 0.85rem;
+            margin-left: 8px;
+        }
+
+        .checkbox-points.positive {
+            color: var(--primary);
+        }
+
+        .checkbox-points.negative {
+            color: var(--danger);
+        }
+
+        .checkbox-item.positive .checkbox-points {
+            color: var(--primary);
+        }
+
+        .checkbox-item.negative .checkbox-points {
+            color: var(--danger);
+        }
+
+        .category-group {
+            margin-bottom: 15px;
+        }
+
+        .category-title {
+            font-weight: bold;
+            font-size: 1rem;
+            padding: 8px 12px;
+            background: #f5f5f5;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .category-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 8px;
+        }
+
+        .checkbox-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .category-section {
+            background: #fafafa;
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid var(--border);
+        }
+
+        .category-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--primary);
+            color: var(--text);
+        }
+
+        .category-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .checkbox-card {
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .checkbox-card:hover {
+            border-color: var(--primary);
+            background: #f8ffff;
+        }
+
+        .checkbox-card.selected {
+            border-color: var(--primary);
+            background: #e8f5e9;
+        }
+
+        .card-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .card-label input {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+        }
+
+        .card-name {
+            flex: 1;
+            font-size: 0.95rem;
+        }
+
+        .card-points {
+            font-weight: bold;
+            font-size: 0.95rem;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .card-points.positive {
+            color: var(--primary);
+        }
+
+        .card-points.negative {
+            color: var(--danger);
+        }
+
+        .item-select:hover, .item-select:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        .item-select.get {
+            border-color: #a5d6a7;
+        }
+
+        .item-select.punish {
+            border-color: #ef9a9a;
+        }
+
+        @media (max-width: 768px) {
+            .tabs {
+                flex-wrap: wrap;
+            }
+            .tab {
+                flex: 1 1 50%;
+            }
+            .balance-amount {
+                font-size: 2rem;
+            }
+            .items-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏠 姚瑞霖家庭积分管理系统</h1>
+            <p>好孩子，就要攒积分！</p>
+        </header>
+
+        <div class="balance-card">
+            <div class="balance-label">当前积分</div>
+            <div class="balance-amount" id="balance">0</div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="dashboard">📊 仪表盘</div>
+            <div class="tab" data-tab="daily">📋 日常奖惩</div>
+            <div class="tab" data-tab="mall">🛒 商城兑换</div>
+            <div class="tab" data-tab="history">📝 积分流水</div>
+            <div class="tab" data-tab="stats">📈 统计分析</div>
+            <div class="tab" data-tab="admin">⚙️ 积分管理</div>
+        </div>
+
+        <div id="dashboard" class="tab-content active">
+            <div class="card">
+                <h2>🏠 欢迎来到积分乐园</h2>
+                <p style="color: var(--text-light); margin-bottom: 15px;">
+                    姚瑞霖小朋友，做任务可以获得积分，积分可以兑换奖励哦！
+                </p>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="todayGet">0</div>
+                        <div class="stat-label">今日获得</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value negative" id="todayUse">0</div>
+                        <div class="stat-label">今日消耗</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="weekGet">0</div>
+                        <div class="stat-label">本周获得</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value negative" id="weekUse">0</div>
+                        <div class="stat-label">本周消耗</div>
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <p style="color: var(--text-light); font-size: 0.9rem;">
+                        💡 点击"获得积分"或"消耗积分"开始吧！
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div id="daily" class="tab-content">
+            <div class="card">
+                <h2>📋 日常奖惩</h2>
+                <p style="color: var(--text-light); margin-bottom: 15px;">按项目分类选择，加分项增加积分，扣分项减少积分</p>
+                <div id="dailyCheckboxes" class="checkbox-container"></div>
+                <div class="action-area" style="margin-top: 20px;">
+                    <div class="selected-info" id="dailySelectedInfo">请选择日常奖惩项目</div>
+                    <button class="btn btn-primary" id="confirmDaily" disabled>确认记录</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="mall" class="tab-content">
+            <div class="card">
+                <h2>🛒 商城兑换</h2>
+                <p style="color: var(--text-light); margin-bottom: 15px;">按项目分类选择，奖励项消耗积分，惩罚项返还积分</p>
+                <div id="mallCheckboxes" class="checkbox-container"></div>
+                <div class="action-area" style="margin-top: 20px;">
+                    <div class="selected-info" id="mallSelectedInfo">请选择商城兑换项目</div>
+                    <button class="btn btn-primary" id="confirmMall" disabled>确认记录</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="history" class="tab-content">
+            <div class="card">
+                <h2>📜 积分流水记录</h2>
+                <div id="historyTable">
+                    <div class="empty-state">暂无记录</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="stats" class="tab-content">
+            <div class="card">
+                <h2>📊 统计分析</h2>
+                <div class="time-selector">
+                    <button class="time-btn active" data-time="week">本周</button>
+                    <button class="time-btn" data-time="month">本月</button>
+                    <button class="time-btn" data-time="quarter">本季度</button>
+                    <button class="time-btn" data-time="year">全年</button>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statsGet">0</div>
+                        <div class="stat-label">获得积分</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value negative" id="statsUse">0</div>
+                        <div class="stat-label">消耗积分</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statsNet">0</div>
+                        <div class="stat-label">净变化</div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="statsChart"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h2>🏆 项目使用排行</h2>
+                <div id="rankingList">
+                    <div class="empty-state">暂无数据</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="admin" class="tab-content">
+            <div class="card">
+                <h2>⚙️ 积分管理</h2>
+                <div class="admin-section">
+                    <h3>📁 导入数据文件</h3>
+                    <div class="file-input-wrapper">
+                        <label style="display: block; margin-bottom: 10px;">选择奖惩规则文件（奖励/惩罚项）：</label>
+                        <input type="file" id="rulesFile" accept=".xlsx" />
+                    </div>
+                    <div class="file-input-wrapper">
+                        <label style="display: block; margin-bottom: 10px;">选择积分商城文件（兑换项）：</label>
+                        <input type="file" id="mallFile" accept=".xlsx" />
+                    </div>
+                    <p style="color: var(--text-light); font-size: 0.9rem;">
+                        请确保"家庭积分奖惩规则表-低年级日常版.xlsx"和"家庭积分商城表-低年级.xlsx"文件与本页面在同一目录下<br>
+                        <span style="color: var(--warning);">注意：导入后会保存到浏览器本地，下次无需重复导入</span>
+                    </p>
+                </div>
+                <div class="admin-section">
+                    <h3>📋 积分记录管理</h3>
+                    <div id="adminRecordList" class="record-list">
+                        <div class="empty-state">暂无记录</div>
+                    </div>
+                </div>
+                <div class="admin-section">
+                    <h3>🔄 重置功能</h3>
+                    <button class="btn btn-danger" id="resetAllBtn">重置所有积分数据</button>
+                    <p style="color: var(--text-light); font-size: 0.9rem; margin-top: 10px;">
+                        注意：此操作会清除所有积分记录和本地存储的数据，不可恢复！
+                    </p>
+                </div>
+                <div class="admin-section">
+                    <h3>✏️ 手动调整积分</h3>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <select id="adjustType" class="item-select" style="flex: 1; max-width: 120px;">
+                            <option value="add">增加</option>
+                            <option value="subtract">扣除</option>
+                        </select>
+                        <input type="text" id="adjustPoints" placeholder="输入调整的积分" class="item-select" style="flex: 1; max-width: 150px;" />
+                        <input type="text" id="adjustReason" placeholder="调整原因" class="item-select" style="flex: 3;" />
+                    </div>
+                    <button class="btn btn-primary" id="adjustBtn">确认调整</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const MALL_FILE = '家庭积分商城表-低年级.xlsx';
+        const RULES_FILE = '家庭积分奖惩规则表-低年级日常版.xlsx';
+        const RECORD_FILE = '家庭积分记录.xlsx';
+
+        let rewards = [];
+        let dailyRewards = [];
+        let punishments = [];
+        let mallPunishments = [];
+        let records = [];
+        let currentDailySelected = null;
+        let currentMallSelected = null;
+        let statsChart = null;
+
+        const store = {
+            get: (key) => {
+                try {
+                    return JSON.parse(localStorage.getItem(key)) || null;
+                } catch { return null; }
+            },
+            set: (key, value) => localStorage.setItem(key, JSON.stringify(value))
+        };
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function formatDate(date) {
+            return new Date(date).toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function getWeekStart(date = new Date()) {
+            const d = new Date(date);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            return new Date(d.setDate(diff));
+        }
+
+        function getMonthStart(date = new Date()) {
+            return new Date(date.getFullYear(), date.getMonth(), 1);
+        }
+
+        function getQuarterStart(date = new Date()) {
+            const quarter = Math.floor(date.getMonth() / 3);
+            return new Date(date.getFullYear(), quarter * 3, 1);
+        }
+
+        function getQuarter(date = new Date()) {
+            return Math.floor(date.getMonth() / 3) + 1;
+        }
+
+        function isInThisWeek(date) {
+            const start = getWeekStart();
+            const end = new Date(start);
+            end.setDate(end.getDate() + 7);
+            return new Date(date) >= start && new Date(date) < end;
+        }
+
+        function isInThisMonth(date) {
+            const now = new Date();
+            return new Date(date).getFullYear() === now.getFullYear() &&
+                   new Date(date).getMonth() === now.getMonth();
+        }
+
+        function isInThisQuarter(date) {
+            const now = new Date();
+            return new Date(date).getFullYear() === now.getFullYear() &&
+                   getQuarter(new Date(date)) === getQuarter(now);
+        }
+
+        function isInThisYear(date) {
+            const now = new Date();
+            return new Date(date).getFullYear() === now.getFullYear();
+        }
+
+        async function loadMallFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                        resolve(json);
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function parseRulesData(data) {
+            dailyRewards = [];
+            punishments = [];
+            let currentCategory = '';
+
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                if (!row || !row[1]) continue;
+
+                const category = String(row[0] || '').trim().replace(/\s+/g, '');
+                const name = String(row[1] || '').trim();
+                const pointsStr = String(row[2] || '');
+                const points = parseInt(pointsStr, 10);
+
+                if (category && category !== 'NaN') {
+                    currentCategory = category;
+                }
+
+                if (!name || isNaN(points)) continue;
+
+                // 扣分项的积分变为负数（消耗积分）
+                let processedPoints = Math.abs(points);
+                if (currentCategory.includes('扣')) {
+                    processedPoints = -Math.abs(points);
+                    punishments.push({ name, points: processedPoints, category: currentCategory });
+                } else {
+                    dailyRewards.push({ name, points: processedPoints, category: currentCategory });
+                }
+            }
+
+            // 保持原始顺序，不排序
+        }
+
+        function parseMallData(data) {
+            rewards = [];
+            mallPunishments = [];
+            let currentCategory = '';
+
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                if (!row || !row[1]) continue;
+
+                const category = String(row[0] || '').trim().replace(/\s+/g, '');
+                const name = String(row[1] || '').trim();
+                const pointsStr = String(row[2] || '').replace('积分', '').trim();
+                const points = parseInt(pointsStr, 10);
+
+                if (category && category !== 'NaN') {
+                    currentCategory = category;
+                }
+
+                if (!name || isNaN(points)) continue;
+
+                const item = { name, points, category: currentCategory };
+                if (currentCategory === '奖励') {
+                    rewards.push(item);
+                } else if (currentCategory === '惩罚') {
+                    mallPunishments.push(item);
+                }
+            }
+
+            rewards.sort((a, b) => b.points - a.points);
+            mallPunishments.sort((a, b) => a.points - b.points);
+        }
+
+        function renderItems() {
+            const dailyCheckboxes = document.getElementById('dailyCheckboxes');
+            const mallCheckboxes = document.getElementById('mallCheckboxes');
+
+            // 保持原始顺序
+
+            const groupedDaily = groupByCategory([...dailyRewards, ...punishments], 'daily');
+            const groupedMall = groupByCategory([...rewards, ...mallPunishments], 'mall');
+
+            dailyCheckboxes.innerHTML = renderCategoriesByGroup(groupedDaily);
+            mallCheckboxes.innerHTML = renderCategoriesByGroup(groupedMall);
+
+            setupDailyEvents();
+            setupMallEvents();
+        }
+
+        function groupByCategory(items, source) {
+            const groups = [];
+            const categoryMap = {};
+            
+            items.forEach(item => {
+                const cat = item.category || '其他';
+                if (!categoryMap[cat]) {
+                    const newGroup = { category: cat, items: [] };
+                    groups.push(newGroup);
+                    categoryMap[cat] = newGroup;
+                }
+                categoryMap[cat].items.push(item);
+            });
+            return groups;
+        }
+
+        function renderCategoriesByGroup(groups) {
+            let html = '';
+            groups.forEach(group => {
+                const { category, items } = group;
+                html += `<div class="category-section">
+                    <div class="category-header">${category}</div>
+                    <div class="category-content">`;
+                items.forEach((item, idx) => {
+                    const isAdd = item.points > 0;
+                    const pointPrefix = isAdd ? '+' : '';
+                    const pointClass = isAdd ? 'positive' : 'negative';
+                    html += `<div class="checkbox-card" data-points="${item.points}" data-name="${item.name}" data-category="${category}">
+                        <label class="card-label">
+                            <input type="checkbox" class="item-checkbox">
+                            <span class="card-name">${item.name}</span>
+                            <span class="card-points ${pointClass}">${pointPrefix}${item.points}</span>
+                        </label>
+                    </div>`;
+                });
+                html += `</div></div>`;
+            });
+            return html || '<div class="empty-state">暂无项目</div>';
+        }
+
+        function setupDailyEvents() {
+            document.querySelectorAll('#dailyCheckboxes .checkbox-card').forEach(card => {
+                card.addEventListener('click', function(e) {
+                    if (e.target.tagName !== 'INPUT') {
+                        const checkbox = this.querySelector('input');
+                        checkbox.checked = !checkbox.checked;
+                    }
+                    this.classList.toggle('selected', this.querySelector('input').checked);
+                    updateDailySelection();
+                });
+            });
+        }
+
+        function setupMallEvents() {
+            document.querySelectorAll('#mallCheckboxes .checkbox-card').forEach(card => {
+                card.addEventListener('click', function(e) {
+                    if (e.target.tagName !== 'INPUT') {
+                        const checkbox = this.querySelector('input');
+                        checkbox.checked = !checkbox.checked;
+                    }
+                    this.classList.toggle('selected', this.querySelector('input').checked);
+                    updateMallSelection();
+                });
+            });
+        }
+
+        function updateDailySelection() {
+            const selected = [];
+            document.querySelectorAll('#dailyCheckboxes .checkbox-card.selected').forEach(card => {
+                const points = parseInt(card.dataset.points);
+                selected.push({
+                    name: card.dataset.name,
+                    points: points,
+                    type: points > 0 ? 'get' : 'use'
+                });
+            });
+
+            if (selected.length > 0) {
+                currentDailySelected = { items: selected };
+                const totalPoints = selected.reduce((sum, item) => sum + item.points, 0);
+                const prefix = totalPoints >= 0 ? '+' : '';
+                document.getElementById('dailySelectedInfo').textContent = `已选 ${selected.length} 项，共 ${prefix}${totalPoints} 积分`;
+                document.getElementById('confirmDaily').disabled = false;
+            } else {
+                currentDailySelected = null;
+                document.getElementById('dailySelectedInfo').textContent = '请选择日常奖惩项目';
+                document.getElementById('confirmDaily').disabled = true;
+            }
+        }
+
+        function updateMallSelection() {
+            const selected = [];
+            document.querySelectorAll('#mallCheckboxes .checkbox-card.selected').forEach(card => {
+                const category = card.dataset.category;
+                const isReward = category === '奖励';
+                const points = parseInt(card.dataset.points);
+                selected.push({
+                    name: card.dataset.name,
+                    points: isReward ? -Math.abs(points) : Math.abs(points),  // 奖励扣除积分（负数），惩罚增加积分（正数）
+                    type: isReward ? 'use' : 'get'
+                });
+            });
+
+            if (selected.length > 0) {
+                currentMallSelected = { items: selected };
+                const totalPoints = selected.reduce((sum, item) => sum + item.points, 0);
+                document.getElementById('mallSelectedInfo').textContent = `已选 ${selected.length} 项，共 ${totalPoints} 积分`;
+                document.getElementById('confirmMall').disabled = false;
+            } else {
+                currentMallSelected = null;
+                document.getElementById('mallSelectedInfo').textContent = '请选择商城兑换项目';
+                document.getElementById('confirmMall').disabled = true;
+            }
+        }
+
+        function loadItemsFromLocal() {
+            const saved = store.get('points_items');
+            if (saved) {
+                console.log('从localStorage加载数据:', saved);
+                dailyRewards = saved.dailyRewards || [];
+                rewards = saved.rewards || [];
+                punishments = saved.punishments || [];
+                mallPunishments = saved.mallPunishments || [];
+                console.log('加载后的数据:', { dailyRewards, rewards, punishments, mallPunishments });
+            } else {
+                console.log('localStorage中没有数据');
+            }
+        }
+
+        function saveItemsToLocal() {
+            console.log('保存到localStorage的数据:', { dailyRewards, rewards, punishments, mallPunishments });
+            store.set('points_items', {
+                dailyRewards,
+                rewards,
+                punishments,
+                mallPunishments
+            });
+            console.log('保存成功');
+        }
+
+        function onRewardSelectChange(select) {
+            const value = select.value;
+            document.getElementById('mallRewardSelect').value = '';
+            if (value) {
+                const [points, name] = value.split('|');
+                currentGetSelected = { name, points: parseInt(points) };
+                document.getElementById('getSelectedInfo').textContent = `${name} (+${points} 积分)`;
+                document.getElementById('confirmGet').disabled = false;
+            } else {
+                currentGetSelected = null;
+                document.getElementById('getSelectedInfo').textContent = '请选择一个奖励项目';
+                document.getElementById('confirmGet').disabled = true;
+            }
+        }
+
+        function onPunishSelectChange(select) {
+            const value = select.value;
+            document.getElementById('mallUseSelect').value = '';
+            if (value) {
+                const [points, name] = value.split('|');
+                currentUseSelected = { name, points: parseInt(points) };
+                document.getElementById('useSelectedInfo').textContent = `${name} (${points} 积分)`;
+                document.getElementById('confirmUse').disabled = false;
+            } else {
+                currentUseSelected = null;
+                document.getElementById('useSelectedInfo').textContent = '请选择一个项目';
+                document.getElementById('confirmUse').disabled = true;
+            }
+        }
+
+        function onMallRewardSelectChange(select) {
+            const value = select.value;
+            document.getElementById('rewardSelect').value = '';
+            if (value) {
+                const [points, name] = value.split('|');
+                currentGetSelected = { name, points: parseInt(points) };
+                document.getElementById('getSelectedInfo').textContent = `${name} (+${points} 积分)`;
+                document.getElementById('confirmGet').disabled = false;
+            } else {
+                currentGetSelected = null;
+                document.getElementById('getSelectedInfo').textContent = '请选择一个奖励项目';
+                document.getElementById('confirmGet').disabled = true;
+            }
+        }
+
+        function onMallUseSelectChange(select) {
+            const value = select.value;
+            document.getElementById('punishSelect').value = '';
+            if (value) {
+                const [points, name] = value.split('|');
+                currentUseSelected = { name, points: parseInt(points) };
+                document.getElementById('useSelectedInfo').textContent = `${name} (${points} 积分)`;
+                document.getElementById('confirmUse').disabled = false;
+            } else {
+                currentUseSelected = null;
+                document.getElementById('useSelectedInfo').textContent = '请选择一个项目';
+                document.getElementById('confirmUse').disabled = true;
+            }
+        }
+
+        function addRecord(type, name, points) {
+            const record = {
+                id: Date.now(),
+                date: new Date().toISOString(),
+                type,
+                name,
+                points
+            };
+            records.push(record);
+            saveRecords();
+            updateBalance();
+            renderHistory();
+            updateDashboard();
+            showToast(`${type === 'get' ? '获得' : '消耗'} ${Math.abs(points)} 积分：${name}`);
+        }
+
+        function saveRecords() {
+            store.set('points_records', records);
+        }
+
+        function loadRecords() {
+            records = store.get('points_records') || [];
+        }
+
+        function updateBalance() {
+            const balance = records.reduce((sum, r) => sum + r.points, 0);
+            const el = document.getElementById('balance');
+            el.textContent = balance;
+            el.classList.toggle('negative', balance < 0);
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('historyTable');
+            if (records.length === 0) {
+                container.innerHTML = '<div class="empty-state">暂无记录</div>';
+                return;
+            }
+
+            const sorted = [...records].sort((a, b) => new Date(b.date) - new Date(a.date));
+            container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>类型</th>
+                            <th>项目</th>
+                            <th>积分</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sorted.map(r => `
+                            <tr>
+                                <td>${formatDate(r.date)}</td>
+                                <td class="${r.type === 'get' ? 'type-get' : 'type-use'}">${r.type === 'get' ? '获得' : '消耗'}</td>
+                                <td>${r.name}</td>
+                                <td class="${r.type === 'get' ? 'type-get' : 'type-use'}">${r.points > 0 ? '+' : ''}${r.points}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function updateDashboard() {
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+            const todayRecords = records.filter(r => new Date(r.date) >= todayStart);
+            const weekRecords = records.filter(r => isInThisWeek(r.date));
+
+            const todayGet = todayRecords.filter(r => r.type === 'get').reduce((s, r) => s + r.points, 0);
+            const todayUse = todayRecords.filter(r => r.type === 'use').reduce((s, r) => s + Math.abs(r.points), 0);
+            const weekGet = weekRecords.filter(r => r.type === 'get').reduce((s, r) => s + r.points, 0);
+            const weekUse = weekRecords.filter(r => r.type === 'use').reduce((s, r) => s + Math.abs(r.points), 0);
+
+            document.getElementById('todayGet').textContent = todayGet;
+            document.getElementById('todayUse').textContent = -todayUse;
+            document.getElementById('weekGet').textContent = weekGet;
+            document.getElementById('weekUse').textContent = -weekUse;
+        }
+
+        function filterRecordsByTime(timeType) {
+            switch (timeType) {
+                case 'week': return records.filter(r => isInThisWeek(r.date));
+                case 'month': return records.filter(r => isInThisMonth(r.date));
+                case 'quarter': return records.filter(r => isInThisQuarter(r.date));
+                case 'year': return records.filter(r => isInThisYear(r.date));
+                default: return records;
+            }
+        }
+
+        function updateStats(timeType) {
+            const filtered = filterRecordsByTime(timeType);
+            const getTotal = filtered.filter(r => r.type === 'get').reduce((s, r) => s + r.points, 0);
+            const useTotal = filtered.filter(r => r.type === 'use').reduce((s, r) => s + Math.abs(r.points), 0);
+            const net = getTotal - useTotal;
+
+            document.getElementById('statsGet').textContent = getTotal;
+            document.getElementById('statsUse').textContent = -useTotal;
+            document.getElementById('statsNet').textContent = (net >= 0 ? '+' : '') + net;
+            document.getElementById('statsNet').classList.toggle('negative', net < 0);
+
+            renderChart(filtered, timeType);
+            renderRanking(filtered);
+        }
+
+        function renderChart(filtered, timeType) {
+            const ctx = document.getElementById('statsChart').getContext('2d');
+
+            const groups = {};
+            filtered.forEach(r => {
+                const date = new Date(r.date);
+                let key;
+                if (timeType === 'week') {
+                    key = date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
+                } else if (timeType === 'month') {
+                    key = date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
+                } else {
+                    key = `${date.getMonth() + 1}月`;
+                }
+                if (!groups[key]) groups[key] = { get: 0, use: 0 };
+                if (r.type === 'get') groups[key].get += r.points;
+                else groups[key].use += Math.abs(r.points);
+            });
+
+            const labels = Object.keys(groups);
+            const getData = labels.map(k => groups[k].get);
+            const useData = labels.map(k => groups[k].use);
+
+            if (statsChart) statsChart.destroy();
+
+            statsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: '获得', data: getData, backgroundColor: '#4CAF50' },
+                        { label: '消耗', data: useData, backgroundColor: '#f44336' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        function renderRanking(filtered) {
+            const counts = {};
+            filtered.forEach(r => {
+                if (!counts[r.name]) counts[r.name] = { get: 0, use: 0 };
+                if (r.type === 'get') counts[r.name].get += 1;
+                else counts[r.name].use += 1;
+            });
+
+            const items = Object.entries(counts).map(([name, c]) => ({
+                name, get: c.get, use: c.use, total: c.get + c.use
+            })).sort((a, b) => b.total - a.total);
+
+            const container = document.getElementById('rankingList');
+            if (items.length === 0) {
+                container.innerHTML = '<div class="empty-state">暂无数据</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>项目</th>
+                            <th>获得次数</th>
+                            <th>消耗次数</th>
+                            <th>总计</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${items.map((item, idx) => `
+                            <tr>
+                                <td>${idx + 1}</td>
+                                <td>${item.name}</td>
+                                <td class="type-get">${item.get}</td>
+                                <td class="type-use">${item.use}</td>
+                                <td>${item.total}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderAdminRecords() {
+            const list = document.getElementById('adminRecordList');
+            
+            if (records.length === 0) {
+                list.innerHTML = '<div class="empty-state">暂无记录</div>';
+                return;
+            }
+
+            list.innerHTML = records.map((record, index) => `
+                <div class="record-item ${record.type}">
+                    <div class="record-info">
+                        <div class="record-date">${formatDate(record.date)}</div>
+                        <div class="record-name">${record.name}</div>
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <div class="record-points">${record.type === 'get' ? '+' : '-' }${Math.abs(record.points)}</div>
+                        <button class="delete-btn" onclick="deleteRecord(${index})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function deleteRecord(index) {
+            if (confirm('确定要删除这条记录吗？')) {
+                records.splice(index, 1);
+                saveRecords();
+                updateBalance();
+                renderHistory();
+                renderAdminRecords();
+                updateDashboard();
+                showToast('记录删除成功');
+            }
+        }
+
+        function resetAllData() {
+            if (confirm('确定要重置所有积分数据吗？此操作不可恢复！')) {
+                records = [];
+                store.set('points_records', records);
+                updateBalance();
+                renderHistory();
+                renderAdminRecords();
+                updateDashboard();
+                showToast('所有数据已重置', 'success');
+            }
+        }
+
+        function clearCheckboxSelection(containerId) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.querySelectorAll('input').forEach(cb => cb.checked = false);
+                container.querySelectorAll('.checkbox-item').forEach(item => item.classList.remove('selected'));
+            }
+        }
+
+        function adjustPoints() {
+            const points = parseInt(document.getElementById('adjustPoints').value);
+            const type = document.getElementById('adjustType').value;
+            const reason = document.getElementById('adjustReason').value;
+
+            if (isNaN(points) || points <= 0) {
+                showToast('请输入有效的积分数量', 'error');
+                return;
+            }
+
+            if (!reason) {
+                showToast('请输入调整原因', 'error');
+                return;
+            }
+
+            const adjustedPoints = type === 'add' ? points : -points;
+            const recordType = type === 'add' ? 'get' : 'use';
+
+            addRecord(recordType, `手动${type === 'add' ? '增加' : '减少'}：${reason}`, adjustedPoints);
+            
+            document.getElementById('adjustPoints').value = '';
+            document.getElementById('adjustReason').value = '';
+            
+            renderAdminRecords();
+            showToast('积分调整成功');
+        }
+
+        function initTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(tab.dataset.tab).classList.add('active');
+
+                    if (tab.dataset.tab === 'stats') {
+                        updateStats('week');
+                    } else if (tab.dataset.tab === 'admin') {
+                        renderAdminRecords();
+                    }
+                });
+            });
+
+            document.querySelectorAll('.time-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    updateStats(btn.dataset.time);
+                });
+            });
+        }
+
+        function initEventListeners() {
+            document.getElementById('resetAllBtn').addEventListener('click', resetAllData);
+            document.getElementById('adjustBtn').addEventListener('click', adjustPoints);
+
+            // 为调整积分输入框添加数字验证
+            const adjustPointsInput = document.getElementById('adjustPoints');
+            adjustPointsInput.addEventListener('input', function(e) {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+
+            document.getElementById('confirmDaily').addEventListener('click', () => {
+                if (currentDailySelected && currentDailySelected.items) {
+                    currentDailySelected.items.forEach(item => {
+                        addRecord(item.type || 'get', item.name, item.points);
+                    });
+                    document.querySelectorAll('#dailyCheckboxes .checkbox-card').forEach(card => {
+                        card.classList.remove('selected');
+                        card.querySelector('input').checked = false;
+                    });
+                    document.getElementById('confirmDaily').disabled = true;
+                    currentDailySelected = null;
+                    document.getElementById('dailySelectedInfo').textContent = '请选择日常奖惩项目';
+                }
+            });
+
+            document.getElementById('confirmMall').addEventListener('click', () => {
+                if (currentMallSelected && currentMallSelected.items) {
+                    currentMallSelected.items.forEach(item => {
+                        addRecord(item.type || 'use', item.name, item.points);
+                    });
+                    document.querySelectorAll('#mallCheckboxes .checkbox-card').forEach(card => {
+                        card.classList.remove('selected');
+                        card.querySelector('input').checked = false;
+                    });
+                    document.getElementById('confirmMall').disabled = true;
+                    currentMallSelected = null;
+                    document.getElementById('mallSelectedInfo').textContent = '请选择商城兑换项目';
+                }
+            });
+
+            document.getElementById('mallFile').addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                try {
+                    const data = await loadMallFile(file);
+                    parseMallData(data);
+                    saveItemsToLocal();
+                    renderItems();
+                    showToast('积分商城加载成功！');
+                } catch (err) {
+                    console.error(err);
+                    showToast('文件加载失败', 'error');
+                }
+            });
+
+            document.getElementById('rulesFile').addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                try {
+                    const data = await loadMallFile(file);
+                    parseRulesData(data);
+                    saveItemsToLocal();
+                    renderItems();
+                    showToast('奖惩规则加载成功！');
+                } catch (err) {
+                    console.error(err);
+                    showToast('文件加载失败', 'error');
+                }
+            });
+
+            // 检查元素是否存在后再添加事件监听器
+            const mallRewardSelect = document.getElementById('mallRewardSelect');
+            if (mallRewardSelect) {
+                mallRewardSelect.addEventListener('change', function() { onMallRewardSelectChange(this); });
+            }
+            const mallUseSelect = document.getElementById('mallUseSelect');
+            if (mallUseSelect) {
+                mallUseSelect.addEventListener('change', function() { onMallUseSelectChange(this); });
+            }
+        }
+
+        async function init() {
+            loadRecords();
+            loadItemsFromLocal();
+            updateBalance();
+            renderHistory();
+            updateDashboard();
+            initTabs();
+            initEventListeners();
+
+            // 检查本地存储是否有数据
+            if (dailyRewards.length === 0 && punishments.length === 0 && rewards.length === 0 && mallPunishments.length === 0) {
+                console.log('本地存储为空，尝试从服务器加载Excel文件');
+                try {
+                    const response = await fetch(RULES_FILE);
+                    if (response.ok) {
+                        const buffer = await response.arrayBuffer();
+                        const data = new Uint8Array(buffer);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                        parseRulesData(json);
+                        saveItemsToLocal();
+                        console.log('从服务器加载奖惩规则成功');
+                    }
+                } catch (e) {
+                    console.log('需要手动选择奖惩规则文件');
+                }
+
+                try {
+                    const response = await fetch(MALL_FILE);
+                    if (response.ok) {
+                        const buffer = await response.arrayBuffer();
+                        const data = new Uint8Array(buffer);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                        parseMallData(json);
+                        saveItemsToLocal();
+                        console.log('从服务器加载商城规则成功');
+                    }
+                } catch (e) {
+                    console.log('需要手动选择积分商城文件');
+                }
+            } else {
+                console.log('本地存储有数据，使用本地数据');
+            }
+
+            renderItems();
+            console.log('初始化完成');
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
 </html>
