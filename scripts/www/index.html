@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>姚瑞霖积分管理系统</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <style>
         :root {
@@ -812,22 +811,7 @@
             <div class="card">
                 <h2>⚙️ 积分管理</h2>
                 <div class="admin-section">
-                    <h3>📁 导入数据文件</h3>
-                    <div class="file-input-wrapper">
-                        <label style="display: block; margin-bottom: 10px;">选择奖惩规则文件（奖励/惩罚项）：</label>
-                        <input type="file" id="rulesFile" accept=".xlsx" capture="filesystem" multiple="false" />
-                    </div>
-                    <div class="file-input-wrapper">
-                        <label style="display: block; margin-bottom: 10px;">选择积分商城文件（兑换项）：</label>
-                        <input type="file" id="mallFile" accept=".xlsx" capture="filesystem" multiple="false" />
-                    </div>
-                    <p style="color: var(--text-light); font-size: 0.9rem;">
-                        请确保"家庭积分奖惩规则表-低年级日常版.xlsx"和"家庭积分商城表-低年级.xlsx"文件与本页面在同一目录下<br>
-                        <span style="color: var(--warning);">注意：导入后会保存到浏览器本地，下次无需重复导入</span>
-                    </p>
-                </div>
-                <div class="admin-section">
-                    <h3>📋 积分记录管理</h3>
+                    <h3> 积分记录管理</h3>
                     <div id="adminRecordList" class="record-list">
                         <div class="empty-state">暂无记录</div>
                     </div>
@@ -856,10 +840,6 @@
     </div>
 
     <script>
-        const MALL_FILE = '家庭积分商城表-低年级.xlsx';
-        const RULES_FILE = '家庭积分奖惩规则表-低年级日常版.xlsx';
-        const RECORD_FILE = '家庭积分记录.xlsx';
-
         let rewards = [];
         let dailyRewards = [];
         let punishments = [];
@@ -868,6 +848,75 @@
         let currentDailySelected = null;
         let currentMallSelected = null;
         let statsChart = null;
+
+        const defaultRules = {
+            dailyRewards: [
+                { name: "按时起床", points: 2, category: "生活习惯" },
+                { name: "自己穿衣服", points: 2, category: "生活习惯" },
+                { name: "整理床铺", points: 3, category: "生活习惯" },
+                { name: "刷牙洗脸", points: 2, category: "生活习惯" },
+                { name: "不睡懒觉", points: 2, category: "生活习惯" },
+                { name: "主动收拾玩具", points: 3, category: "生活习惯" },
+                { name: "整理书包", points: 2, category: "学习习惯" },
+                { name: "按时完成作业", points: 5, category: "学习习惯" },
+                { name: "作业整洁", points: 3, category: "学习习惯" },
+                { name: "认真听讲", points: 3, category: "学习习惯" },
+                { name: "积极回答问题", points: 2, category: "学习习惯" },
+                { name: "帮助同学", points: 3, category: "团结友爱" },
+                { name: "分享玩具", points: 2, category: "团结友爱" },
+                { name: "主动打招呼", points: 2, category: "礼貌行为" },
+                { name: "说谢谢", points: 2, category: "礼貌行为" },
+                { name: "不说脏话", points: 3, category: "礼貌行为" },
+                { name: "认真做家务", points: 5, category: "家务劳动" },
+                { name: "洗碗", points: 3, category: "家务劳动" },
+                { name: "扫地", points: 3, category: "家务劳动" },
+                { name: "擦桌子", points: 2, category: "家务劳动" },
+                { name: "洗自己的袜子", points: 3, category: "家务劳动" },
+                { name: "垃圾分类", points: 2, category: "家务劳动" }
+            ],
+            punishments: [
+                { name: "赖床", points: -2, category: "生活习惯" },
+                { name: "玩手机超时", points: -5, category: "生活习惯" },
+                { name: "玩具乱扔", points: -3, category: "生活习惯" },
+                { name: "不整理床铺", points: -2, category: "生活习惯" },
+                { name: "作业拖延", points: -5, category: "学习习惯" },
+                { name: "作业马虎", points: -3, category: "学习习惯" },
+                { name: "上课走神", points: -3, category: "学习习惯" },
+                { name: "与同学打架", points: -10, category: "团结友爱" },
+                { name: "说谎", points: -5, category: "礼貌行为" },
+                { name: "没礼貌", points: -3, category: "礼貌行为" },
+                { name: "挑食", points: -2, category: "生活习惯" },
+                { name: "看电视超时", points: -5, category: "生活习惯" }
+            ],
+            rewards: [
+                { name: "玩具汽车", points: 50, category: "玩具" },
+                { name: "芭比娃娃", points: 50, category: "玩具" },
+                { name: "乐高积木", points: 80, category: "玩具" },
+                { name: "遥控飞机", points: 100, category: "玩具" },
+                { name: "绘本图书", points: 30, category: "图书" },
+                { name: "漫画书", points: 25, category: "图书" },
+                { name: "课外读物", points: 35, category: "图书" },
+                { name: "零食大礼包", points: 40, category: "美食" },
+                { name: "冰淇淋", points: 15, category: "美食" },
+                { name: "炸鸡", points: 30, category: "美食" },
+                { name: "看电影", points: 40, category: "娱乐" },
+                { name: "游乐园", points: 60, category: "娱乐" },
+                { name: "公园玩", points: 20, category: "娱乐" },
+                { name: "延长游戏时间30分钟", points: 20, category: "特权" },
+                { name: "晚睡30分钟", points: 15, category: "特权" },
+                { name: "选择晚餐", points: 25, category: "特权" },
+                { name: "周末不用洗碗", points: 10, category: "特权" },
+                { name: "彩色画笔", points: 35, category: "文具" },
+                { name: "笔记本", points: 15, category: "文具" },
+                { name: "书包", points: 60, category: "文具" }
+            ],
+            mallPunishments: [
+                { name: "取消游戏时间", points: -20, category: "惩罚" },
+                { name: "取消动画片", points: -15, category: "惩罚" },
+                { name: "减少零花钱", points: -30, category: "惩罚" },
+                { name: "取消周末活动", points: -40, category: "惩罚" }
+            ]
+        };
 
         const store = {
             get: (key) => {
@@ -938,90 +987,6 @@
         function isInThisYear(date) {
             const now = new Date();
             return new Date(date).getFullYear() === now.getFullYear();
-        }
-
-        async function loadMallFile(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-                        resolve(json);
-                    } catch (err) {
-                        reject(err);
-                    }
-                };
-                reader.onerror = reject;
-                reader.readAsArrayBuffer(file);
-            });
-        }
-
-        function parseRulesData(data) {
-            dailyRewards = [];
-            punishments = [];
-            let currentCategory = '';
-
-            for (let i = 1; i < data.length; i++) {
-                const row = data[i];
-                if (!row || !row[1]) continue;
-
-                const category = String(row[0] || '').trim().replace(/\s+/g, '');
-                const name = String(row[1] || '').trim();
-                const pointsStr = String(row[2] || '');
-                const points = parseInt(pointsStr, 10);
-
-                if (category && category !== 'NaN') {
-                    currentCategory = category;
-                }
-
-                if (!name || isNaN(points)) continue;
-
-                // 扣分项的积分变为负数（消耗积分）
-                let processedPoints = Math.abs(points);
-                if (currentCategory.includes('扣')) {
-                    processedPoints = -Math.abs(points);
-                    punishments.push({ name, points: processedPoints, category: currentCategory });
-                } else {
-                    dailyRewards.push({ name, points: processedPoints, category: currentCategory });
-                }
-            }
-
-            // 保持原始顺序，不排序
-        }
-
-        function parseMallData(data) {
-            rewards = [];
-            mallPunishments = [];
-            let currentCategory = '';
-
-            for (let i = 1; i < data.length; i++) {
-                const row = data[i];
-                if (!row || !row[1]) continue;
-
-                const category = String(row[0] || '').trim().replace(/\s+/g, '');
-                const name = String(row[1] || '').trim();
-                const pointsStr = String(row[2] || '').replace('积分', '').trim();
-                const points = parseInt(pointsStr, 10);
-
-                if (category && category !== 'NaN') {
-                    currentCategory = category;
-                }
-
-                if (!name || isNaN(points)) continue;
-
-                const item = { name, points, category: currentCategory };
-                if (currentCategory === '奖励') {
-                    rewards.push(item);
-                } else if (currentCategory === '惩罚') {
-                    mallPunishments.push(item);
-                }
-            }
-
-            rewards.sort((a, b) => b.points - a.points);
-            mallPunishments.sort((a, b) => a.points - b.points);
         }
 
         function renderItems() {
@@ -1157,7 +1122,7 @@
 
         function loadItemsFromLocal() {
             const saved = store.get('points_items');
-            if (saved) {
+            if (saved && (saved.dailyRewards?.length > 0 || saved.rewards?.length > 0 || saved.punishments?.length > 0 || saved.mallPunishments?.length > 0)) {
                 console.log('从localStorage加载数据:', saved);
                 dailyRewards = saved.dailyRewards || [];
                 rewards = saved.rewards || [];
@@ -1165,7 +1130,12 @@
                 mallPunishments = saved.mallPunishments || [];
                 console.log('加载后的数据:', { dailyRewards, rewards, punishments, mallPunishments });
             } else {
-                console.log('localStorage中没有数据');
+                console.log('localStorage中没有数据，使用内置默认规则');
+                dailyRewards = defaultRules.dailyRewards || [];
+                rewards = defaultRules.rewards || [];
+                punishments = defaultRules.punishments || [];
+                mallPunishments = defaultRules.mallPunishments || [];
+                saveItemsToLocal();
             }
         }
 
@@ -1580,38 +1550,6 @@
                 }
             });
 
-            document.getElementById('mallFile').addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                try {
-                    const data = await loadMallFile(file);
-                    parseMallData(data);
-                    saveItemsToLocal();
-                    renderItems();
-                    showToast('积分商城加载成功！');
-                } catch (err) {
-                    console.error(err);
-                    showToast('文件加载失败', 'error');
-                }
-            });
-
-            document.getElementById('rulesFile').addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                try {
-                    const data = await loadMallFile(file);
-                    parseRulesData(data);
-                    saveItemsToLocal();
-                    renderItems();
-                    showToast('奖惩规则加载成功！');
-                } catch (err) {
-                    console.error(err);
-                    showToast('文件加载失败', 'error');
-                }
-            });
-
             // 检查元素是否存在后再添加事件监听器
             const mallRewardSelect = document.getElementById('mallRewardSelect');
             if (mallRewardSelect) {
@@ -1631,45 +1569,6 @@
             updateDashboard();
             initTabs();
             initEventListeners();
-
-            // 检查本地存储是否有数据
-            if (dailyRewards.length === 0 && punishments.length === 0 && rewards.length === 0 && mallPunishments.length === 0) {
-                console.log('本地存储为空，尝试从服务器加载Excel文件');
-                try {
-                    const response = await fetch(RULES_FILE);
-                    if (response.ok) {
-                        const buffer = await response.arrayBuffer();
-                        const data = new Uint8Array(buffer);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-                        parseRulesData(json);
-                        saveItemsToLocal();
-                        console.log('从服务器加载奖惩规则成功');
-                    }
-                } catch (e) {
-                    console.log('需要手动选择奖惩规则文件');
-                }
-
-                try {
-                    const response = await fetch(MALL_FILE);
-                    if (response.ok) {
-                        const buffer = await response.arrayBuffer();
-                        const data = new Uint8Array(buffer);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-                        parseMallData(json);
-                        saveItemsToLocal();
-                        console.log('从服务器加载商城规则成功');
-                    }
-                } catch (e) {
-                    console.log('需要手动选择积分商城文件');
-                }
-            } else {
-                console.log('本地存储有数据，使用本地数据');
-            }
-
             renderItems();
             console.log('初始化完成');
         }
